@@ -1,0 +1,6 @@
+{
+  "name": "VidSave",
+  "description": "TikTok Video Downloader with ChatGPT-inspired conversational interface, video preview, download history, and automated update system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

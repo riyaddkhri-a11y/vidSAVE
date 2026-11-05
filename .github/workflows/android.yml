@@ -1,0 +1,171 @@
+name: VidSave Release CI/CD
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Manual versionName override (e.g., 1.1.0)'
+        required: false
+        default: ''
+      version_code_override:
+        description: 'Manual versionCode override (e.g., 2)'
+        required: false
+        default: ''
+
+jobs:
+  build-and-release:
+    name: Build Signed Release APK & Publish GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Restore Persistent Keystore
+        run: |
+          echo "=== Restoring Persistent Keystore ==="
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/release.keystore" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "Keystore restored successfully from KEYSTORE_BASE64."
+          elif [ -n "${{ secrets.SIGNING_KEY }}" ]; then
+            echo "${{ secrets.SIGNING_KEY }}" | base64 -d > release.keystore
+            echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/release.keystore" >> $GITHUB_ENV
+            echo "STORE_PASSWORD=${{ secrets.STORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> $GITHUB_ENV
+            echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> $GITHUB_ENV
+            echo "Keystore restored successfully from SIGNING_KEY."
+          else
+            echo "::error::Missing required signing secrets (KEYSTORE_BASE64 or SIGNING_KEY). Persistent signing is required."
+            exit 1
+          fi
+
+      - name: Calculate Next Application Version
+        id: versioning
+        run: |
+          echo "=== Calculating Automatic Patch Version ==="
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+          CLEAN_VERSION=${LATEST_TAG#v}
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VERSION"
+          NEXT_PATCH=$((PATCH + 1))
+          AUTO_VERSION_NAME="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          
+          # Check for tag count to derive versionCode
+          TAG_COUNT=$(git tag -l "v*" | wc -l)
+          AUTO_VERSION_CODE=$((TAG_COUNT + 1))
+
+          # Override if provided via workflow_dispatch
+          FINAL_VERSION_NAME="${{ github.event.inputs.version_override }}"
+          if [ -z "$FINAL_VERSION_NAME" ]; then
+            FINAL_VERSION_NAME="$AUTO_VERSION_NAME"
+          fi
+
+          FINAL_VERSION_CODE="${{ github.event.inputs.version_code_override }}"
+          if [ -z "$FINAL_VERSION_CODE" ]; then
+            FINAL_VERSION_CODE="$AUTO_VERSION_CODE"
+          fi
+
+          echo "VERSION_NAME=$FINAL_VERSION_NAME" >> $GITHUB_ENV
+          echo "VERSION_CODE=$FINAL_VERSION_CODE" >> $GITHUB_ENV
+          echo "Calculated VersionName: $FINAL_VERSION_NAME"
+          echo "Calculated VersionCode: $FINAL_VERSION_CODE"
+
+      - name: Execute Tests and Verification
+        run: |
+          echo "=== Running Unit Tests ==="
+          gradle testDebugUnitTest --no-daemon
+
+      - name: Build Signed Release APK
+        run: |
+          echo "=== Building Signed Release APK ==="
+          gradle assembleRelease \
+            -Pandroid.injected.version.name="${{ env.VERSION_NAME }}" \
+            -Pandroid.injected.version.code="${{ env.VERSION_CODE }}" \
+            --no-daemon
+
+      - name: Verify APK Integrity and Certificate
+        id: verify_apk
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ ! -f "$APK_PATH" ]; then
+            echo "::error::Release APK file not found."
+            exit 1
+          fi
+
+          echo "Found Release APK at $APK_PATH"
+          echo "APK_FILE_PATH=$APK_PATH" >> $GITHUB_ENV
+
+          # Calculate SHA-256
+          SHA256_HASH=$(sha256sum "$APK_PATH" | awk '{print $1}')
+          echo "APK_SHA256=$SHA256_HASH" >> $GITHUB_ENV
+          echo "Release APK SHA-256: $SHA256_HASH"
+
+      - name: Generate Machine-Readable Update Metadata JSON
+        run: |
+          METADATA_FILE="update-metadata.json"
+          cat <<EOF > $METADATA_FILE
+          {
+            "version": "${{ env.VERSION_NAME }}",
+            "versionCode": ${{ env.VERSION_CODE }},
+            "releaseName": "VidSave v${{ env.VERSION_NAME }}",
+            "releaseNotes": "Automated production release v${{ env.VERSION_NAME }} with persistent APK signing and in-app update support.",
+            "downloadUrl": "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION_NAME }}/VidSave-v${{ env.VERSION_NAME }}-release.apk",
+            "sha256": "${{ env.APK_SHA256 }}",
+            "packageName": "com.vidsave.app",
+            "mandatory": false
+          }
+          EOF
+          echo "Generated update-metadata.json:"
+          cat $METADATA_FILE
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ env.VERSION_NAME }}"
+          name: "VidSave v${{ env.VERSION_NAME }}"
+          body: |
+            ## VidSave Release v${{ env.VERSION_NAME }} (Build ${{ env.VERSION_CODE }})
+
+            ### Release Highlights:
+            - TikTok video extraction and high quality downloads.
+            - ChatGPT-inspired conversational interface.
+            - Full persistent APK signing.
+            - Automatic in-app update integration.
+
+            **Package Name:** `com.vidsave.app`
+            **SHA-256 Checksum:** `${{ env.APK_SHA256 }}`
+          draft: false
+          prerelease: false
+          files: |
+            ${{ env.APK_FILE_PATH }}
+            update-metadata.json
+
+      - name: Produce GitHub Build Summary
+        run: |
+          echo "## 🚀 VidSave Build & Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- **Application ID:** \`com.vidsave.app\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Name:** \`v${{ env.VERSION_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version Code:** \`${{ env.VERSION_CODE }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release Status:** Published to GitHub Releases" >> $GITHUB_STEP_SUMMARY
+          echo "- **SHA-256:** \`${{ env.APK_SHA256 }}\`" >> $GITHUB_STEP_SUMMARY
