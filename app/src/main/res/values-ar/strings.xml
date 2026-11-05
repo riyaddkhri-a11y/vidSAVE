@@ -72,4 +72,6 @@
     <string name="later">لاحقاً</string>
     <string name="current_installed">الإصدار المثبت حالياً: v%1$s</string>
     <string name="file_provider_authority">com.vidsave.app.fileprovider</string>
+    <string name="verification_error_signature_mismatch">عدم تطابق شهادة التوقيع. لا يمكن تثبيت تحديثات Release الرسمية فوق النماذج التجريبية. يرجى التثبيت النظيف لإصدار Release الرسمي لأول مرة.</string>
+    <string name="verification_error_generic">فشل التحقق: %1$s</string>
 </resources>

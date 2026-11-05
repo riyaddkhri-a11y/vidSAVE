@@ -156,6 +156,22 @@ jobs:
           echo "APK_SHA256=$SHA256_HASH" >> $GITHUB_ENV
           echo "Release APK SHA-256: $SHA256_HASH"
 
+          APKSIGNER=$(find ${ANDROID_SDK_ROOT:-/opt/android/sdk} -name apksigner | head -n 1)
+          if [ -n "$APKSIGNER" ]; then
+            echo "Extracting signing certificate SHA-256 with $APKSIGNER..."
+            $APKSIGNER verify --verbose --print-certs "$APK_PATH" > apk_verify_output.txt
+            cat apk_verify_output.txt
+            CERT_SHA256=$(grep "certificate SHA-256 digest:" apk_verify_output.txt | head -n 1 | awk '{print $NF}')
+            echo "CERT_SHA256=$CERT_SHA256" >> $GITHUB_ENV
+            echo "Extracted Certificate SHA-256: $CERT_SHA256"
+          fi
+
+      - name: Prepare Release Asset Filename
+        run: |
+          RELEASE_ASSET="VidSave-v${{ env.VERSION_NAME }}-release.apk"
+          cp "${{ env.APK_FILE_PATH }}" "$RELEASE_ASSET"
+          echo "RELEASE_ASSET=$RELEASE_ASSET" >> $GITHUB_ENV
+
       - name: Generate Machine-Readable Update Metadata JSON
         run: |
           METADATA_FILE="update-metadata.json"
@@ -168,7 +184,8 @@ jobs:
             "downloadUrl": "https://github.com/${{ github.repository }}/releases/download/v${{ env.VERSION_NAME }}/VidSave-v${{ env.VERSION_NAME }}-release.apk",
             "sha256": "${{ env.APK_SHA256 }}",
             "packageName": "com.vidsave.app",
-            "mandatory": false
+            "mandatory": false,
+            "signingCertificateSha256": "${{ env.CERT_SHA256 }}"
           }
           EOF
           echo "Generated update-metadata.json:"
@@ -185,15 +202,16 @@ jobs:
             ### Release Highlights:
             - TikTok video extraction and high quality downloads.
             - ChatGPT-inspired conversational interface.
-            - Full persistent APK signing.
+            - Full persistent APK signing with production release key.
             - Automatic in-app update integration.
 
             **Package Name:** `com.vidsave.app`
             **SHA-256 Checksum:** `${{ env.APK_SHA256 }}`
+            **Certificate SHA-256:** `${{ env.CERT_SHA256 }}`
           draft: false
           prerelease: false
           files: |
-            ${{ env.APK_FILE_PATH }}
+            ${{ env.RELEASE_ASSET }}
             update-metadata.json
 
       - name: Produce GitHub Build Summary
@@ -204,3 +222,5 @@ jobs:
           echo "- **Version Code:** \`${{ env.VERSION_CODE }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Release Status:** Published to GitHub Releases" >> $GITHUB_STEP_SUMMARY
           echo "- **SHA-256:** \`${{ env.APK_SHA256 }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Certificate SHA-256:** \`${{ env.CERT_SHA256 }}\`" >> $GITHUB_STEP_SUMMARY
+

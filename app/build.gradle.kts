@@ -27,10 +27,16 @@ android {
   signingConfigs {
     create("release") {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/vidsave-release.jks"
-      storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD") ?: "VidSaveReleasePass2026!"
-      keyAlias = System.getenv("KEY_ALIAS") ?: "vidsave-key"
-      keyPassword = System.getenv("KEY_PASSWORD") ?: "VidSaveReleasePass2026!"
+      val storePass = System.getenv("STORE_PASSWORD")
+      val alias = System.getenv("KEY_ALIAS")
+      val keyPass = System.getenv("KEY_PASSWORD")
+
+      if (!storePass.isNullOrEmpty()) {
+        storeFile = file(keystorePath)
+        storePassword = storePass
+        keyAlias = alias ?: "vidsave-key"
+        keyPassword = keyPass ?: storePass
+      }
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")

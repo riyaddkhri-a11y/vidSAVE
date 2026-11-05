@@ -42,7 +42,7 @@ class UpdateRepository(private val context: Context) {
      * @param forceCheck If true, bypasses 1-hour cache
      */
     suspend fun checkForUpdates(
-        metadataUrl: String = "https://raw.githubusercontent.com/VidSave/VidSave/main/update-metadata.json",
+        metadataUrl: String = "https://raw.githubusercontent.com/riyaddkhri-a11y/vidSAVE/main/update-metadata.json",
         forceCheck: Boolean = false
     ): Result<UpdateMetadata?> = withContext(Dispatchers.IO) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -61,7 +61,7 @@ class InAppUpdateManager(private val context: Context) {
      */
     suspend fun checkForUpdates(
         forceCheck: Boolean = false,
-        metadataUrl: String = "https://raw.githubusercontent.com/VidSave/VidSave/main/update-metadata.json"
+        metadataUrl: String = "https://raw.githubusercontent.com/riyaddkhri-a11y/vidSAVE/main/update-metadata.json"
     ): Result<UpdateMetadata?> = withContext(Dispatchers.IO) {
         val result = updateRepository.checkForUpdates(metadataUrl = metadataUrl, forceCheck = forceCheck)
         

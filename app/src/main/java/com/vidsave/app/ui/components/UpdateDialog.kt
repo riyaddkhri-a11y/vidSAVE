@@ -120,8 +120,14 @@ fun UpdateDialog(
                             }
                         }
                         is UpdateStatus.VerificationFailed -> {
+                            val isSignatureMismatch = updateStatus.reason.contains("SIGNATURE_MISMATCH")
+                            val errorText = if (isSignatureMismatch) {
+                                stringResource(R.string.verification_error_signature_mismatch)
+                            } else {
+                                stringResource(R.string.verification_error_generic, updateStatus.reason)
+                            }
                             Text(
-                                text = "Verification Error: ${updateStatus.reason}",
+                                text = errorText,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.error
                             )

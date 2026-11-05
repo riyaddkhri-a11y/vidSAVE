@@ -93,10 +93,26 @@ object ApkVerifier {
         // 5. Verify Signing Certificate if expected signature is provided
         if (!expectedCertificateSha256.isNullOrBlank()) {
             val certSha256 = extractApkSigningCertificateSha256(packageInfo)
-            if (certSha256 != null && !certSha256.equals(expectedCertificateSha256.trim(), ignoreCase = true)) {
+            val cleanExpected = expectedCertificateSha256.trim().replace(":", "")
+            if (certSha256 != null && !certSha256.equals(cleanExpected, ignoreCase = true)) {
                 return VerificationResult(
                     isValid = false,
-                    reason = "APK signing certificate mismatch. Security verification failed.",
+                    reason = "APK signing certificate mismatch with metadata signature.",
+                    packageName = parsedPackageName,
+                    versionCode = parsedVersionCode,
+                    versionName = parsedVersionName
+                )
+            }
+        }
+
+        // 6. Verify Signing Certificate matches current installed app signature
+        val installedCertSha256 = getInstalledAppCertificateSha256(context)
+        val downloadedCertSha256 = extractApkSigningCertificateSha256(packageInfo)
+        if (installedCertSha256 != null && downloadedCertSha256 != null) {
+            if (!installedCertSha256.equals(downloadedCertSha256, ignoreCase = true)) {
+                return VerificationResult(
+                    isValid = false,
+                    reason = "SIGNATURE_MISMATCH: Installed app signature differs from update signature.",
                     packageName = parsedPackageName,
                     versionCode = parsedVersionCode,
                     versionName = parsedVersionName
@@ -111,6 +127,21 @@ object ApkVerifier {
             versionCode = parsedVersionCode,
             versionName = parsedVersionName
         )
+    }
+
+    fun getInstalledAppCertificateSha256(context: Context): String? {
+        return try {
+            val pm = context.packageManager
+            val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pm.getPackageInfo(context.packageName, PackageManager.PackageInfoFlags.of(PackageManager.GET_SIGNATURES.toLong()))
+            } else {
+                @Suppress("DEPRECATION")
+                pm.getPackageInfo(context.packageName, PackageManager.GET_SIGNATURES)
+            }
+            extractApkSigningCertificateSha256(packageInfo)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun extractApkSigningCertificateSha256(packageInfo: android.content.pm.PackageInfo): String? {

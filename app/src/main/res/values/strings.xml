@@ -72,4 +72,6 @@
     <string name="later">Later</string>
     <string name="current_installed">Current installed: v%1$s</string>
     <string name="file_provider_authority">com.vidsave.app.fileprovider</string>
+    <string name="verification_error_signature_mismatch">Signing certificate mismatch. Official Release updates cannot be installed over temporary Debug builds. Please perform a one-time clean installation of the official Release APK.</string>
+    <string name="verification_error_generic">Verification failed: %1$s</string>
 </resources>
