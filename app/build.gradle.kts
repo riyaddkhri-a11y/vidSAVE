@@ -26,11 +26,11 @@ android {
   // and updating Android apps in AI Studio.
   signingConfigs {
     create("release") {
-      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/vidsave-release.jks"
       storeFile = file(keystorePath)
-      storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
-      keyPassword = System.getenv("KEY_PASSWORD")
+      storePassword = System.getenv("STORE_PASSWORD") ?: "VidSaveReleasePass2026!"
+      keyAlias = System.getenv("KEY_ALIAS") ?: "vidsave-key"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: "VidSaveReleasePass2026!"
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
