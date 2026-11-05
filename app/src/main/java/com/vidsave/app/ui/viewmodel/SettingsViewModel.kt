@@ -22,7 +22,7 @@ enum class AppLanguage {
 data class SettingsUiState(
     val apiEndpointUrl: String = "https://api.vidsave.app/v1/extract",
     val theme: AppTheme = AppTheme.DARK,
-    val language: AppLanguage = AppLanguage.ENGLISH,
+    val language: AppLanguage = AppLanguage.ARABIC,
     val installedVersionName: String = "1.0.0",
     val installedVersionCode: Long = 1L
 )
@@ -40,7 +40,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         SettingsUiState(
             apiEndpointUrl = prefs.getString(KEY_API_URL, "https://api.vidsave.app/v1/extract") ?: "https://api.vidsave.app/v1/extract",
             theme = try { AppTheme.valueOf(prefs.getString(KEY_THEME, AppTheme.DARK.name)!!) } catch (e: Exception) { AppTheme.DARK },
-            language = try { AppLanguage.valueOf(prefs.getString(KEY_LANG, AppLanguage.ENGLISH.name)!!) } catch (e: Exception) { AppLanguage.ENGLISH },
+            language = try { AppLanguage.valueOf(prefs.getString(KEY_LANG, AppLanguage.ARABIC.name)!!) } catch (e: Exception) { AppLanguage.ARABIC },
             installedVersionName = getVersionName(application),
             installedVersionCode = getVersionCode(application)
         )

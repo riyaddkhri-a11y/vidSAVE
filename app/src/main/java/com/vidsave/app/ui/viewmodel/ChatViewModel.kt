@@ -13,6 +13,7 @@ import com.vidsave.app.data.repository.DownloadRepository
 import com.vidsave.app.data.repository.VideoExtractorRepository
 import com.vidsave.app.domain.TikTokUrlValidator
 import com.vidsave.app.download.VidSaveDownloadManager
+import com.vidsave.app.R
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,7 +43,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         // Welcome message initialization
         val welcomeMsg = ChatMessage(
             sender = SenderType.ASSISTANT,
-            text = "Welcome to VidSave! 🎬\n\nPaste any TikTok video link here, and I'll extract the highest available quality for preview and fast download."
+            text = application.getString(R.string.welcome_chat_msg)
         )
         _uiState.update { it.copy(messages = listOf(welcomeMsg)) }
     }
@@ -75,9 +76,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (!TikTokUrlValidator.isValidTikTokUrl(targetUrl)) {
             val errorMsg = ChatMessage(
                 sender = SenderType.ASSISTANT,
-                text = "Invalid TikTok URL. Please paste a valid link (e.g., https://vt.tiktok.com/... or https://www.tiktok.com/@user/video/...)",
+                text = getApplication<Application>().getString(R.string.invalid_url),
                 status = MessageStatus.ERROR,
-                errorMessage = "Invalid link format"
+                errorMessage = getApplication<Application>().getString(R.string.invalid_link_format)
             )
             _uiState.update {
                 it.copy(
@@ -92,7 +93,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         val loadingMessage = ChatMessage(
             id = extractingMessageId,
             sender = SenderType.ASSISTANT,
-            text = "Processing video link and extracting renditions...",
+            text = getApplication<Application>().getString(R.string.processing_video),
             status = MessageStatus.EXTRACTING
         )
 
@@ -113,17 +114,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 val metadata = result.getOrNull()!!
                 val resultMessage = ChatMessage(
                     sender = SenderType.ASSISTANT,
-                    text = "Video extracted successfully! Choose quality and download below.",
+                    text = getApplication<Application>().getString(R.string.video_extracted_success),
                     status = MessageStatus.SUCCESS,
                     metadata = metadata
                 )
                 _uiState.update { it.copy(messages = it.messages + resultMessage) }
             } else {
                 val errorMsg = result.exceptionOrNull()?.localizedMessage
-                    ?: "Extraction service unavailable."
+                    ?: getApplication<Application>().getString(R.string.backend_error)
                 val failureMessage = ChatMessage(
                     sender = SenderType.ASSISTANT,
-                    text = "Unable to extract video details:\n$errorMsg",
+                    text = "${getApplication<Application>().getString(R.string.unable_extract)}\n$errorMsg",
                     status = MessageStatus.ERROR,
                     errorMessage = errorMsg
                 )
@@ -194,7 +195,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun clearChat() {
         val welcomeMsg = ChatMessage(
             sender = SenderType.ASSISTANT,
-            text = "Chat history cleared. Send a new TikTok video link to extract and download."
+            text = getApplication<Application>().getString(R.string.chat_cleared_msg)
         )
         _uiState.update { it.copy(messages = listOf(welcomeMsg)) }
     }

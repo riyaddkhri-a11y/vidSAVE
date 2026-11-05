@@ -30,6 +30,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.vidsave.app.R
 import com.vidsave.app.data.model.UpdateMetadata
 import com.vidsave.app.ui.theme.PrimaryAccent
 import com.vidsave.app.update.UpdateStatus
@@ -58,7 +60,7 @@ fun UpdateDialog(
             },
             title = {
                 Text(
-                    text = if (metadata != null) "Update Available: v${metadata.version}" else "Downloading Update...",
+                    text = if (metadata != null) stringResource(R.string.update_available, metadata.version) else stringResource(R.string.downloading_update),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -66,7 +68,7 @@ fun UpdateDialog(
             text = {
                 Column {
                     Text(
-                        text = "Current installed: v$currentVersionName",
+                        text = stringResource(R.string.current_installed, currentVersionName),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -75,13 +77,13 @@ fun UpdateDialog(
 
                     if (metadata != null) {
                         Text(
-                            text = "Release Notes:",
+                            text = stringResource(R.string.release_notes),
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = metadata.releaseNotes.ifBlank { "Bug fixes and performance improvements." },
+                            text = metadata.releaseNotes.ifBlank { stringResource(R.string.default_release_notes) },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -97,7 +99,7 @@ fun UpdateDialog(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "Downloading APK...",
+                                        text = stringResource(R.string.downloading_update),
                                         style = MaterialTheme.typography.bodySmall
                                     )
                                     Text(
@@ -135,7 +137,7 @@ fun UpdateDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent),
                         modifier = Modifier.testTag("confirm_update_button")
                     ) {
-                        Text("Update Now", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.update_now), fontWeight = FontWeight.Bold)
                     }
                 }
             },
@@ -145,7 +147,7 @@ fun UpdateDialog(
                         onClick = onDismiss,
                         modifier = Modifier.testTag("dismiss_update_button")
                     ) {
-                        Text("Later")
+                        Text(stringResource(R.string.later))
                     }
                 }
             },

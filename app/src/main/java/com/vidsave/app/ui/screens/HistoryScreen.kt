@@ -50,7 +50,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
 import coil.compose.AsyncImage
+import com.vidsave.app.R
 import com.vidsave.app.ui.theme.PrimaryAccent
 import com.vidsave.app.ui.viewmodel.HistoryViewModel
 import java.text.SimpleDateFormat
@@ -75,7 +77,7 @@ fun HistoryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Download History",
+                        text = stringResource(R.string.history_title),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -86,7 +88,7 @@ fun HistoryScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.history_title)
                         )
                     }
                 },
@@ -98,7 +100,7 @@ fun HistoryScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.DeleteSweep,
-                                contentDescription = "Clear History",
+                                contentDescription = stringResource(R.string.clear_history),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -139,7 +141,7 @@ fun HistoryScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "No Download History",
+                    text = stringResource(R.string.no_history),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
@@ -148,7 +150,7 @@ fun HistoryScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Downloaded videos will appear here.",
+                    text = stringResource(R.string.no_history_sub),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -216,18 +218,19 @@ fun HistoryScreen(
                                 )
                             }
 
+                            val shareTitle = stringResource(R.string.share_video)
                             IconButton(
                                 onClick = {
                                     val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                         type = "text/plain"
                                         putExtra(Intent.EXTRA_TEXT, "Check out this TikTok video downloaded with VidSave: ${item.videoUrl}")
                                     }
-                                    context.startActivity(Intent.createChooser(shareIntent, "Share Video"))
+                                    context.startActivity(Intent.createChooser(shareIntent, shareTitle))
                                 }
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Share,
-                                    contentDescription = "Share",
+                                    contentDescription = shareTitle,
                                     tint = PrimaryAccent
                                 )
                             }

@@ -1,5 +1,6 @@
 package com.vidsave.app
 
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,8 +9,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,11 +25,13 @@ import com.vidsave.app.ui.screens.ChatScreen
 import com.vidsave.app.ui.screens.HistoryScreen
 import com.vidsave.app.ui.screens.SettingsScreen
 import com.vidsave.app.ui.theme.VidSaveTheme
+import com.vidsave.app.ui.viewmodel.AppLanguage
 import com.vidsave.app.ui.viewmodel.AppTheme
 import com.vidsave.app.ui.viewmodel.ChatViewModel
 import com.vidsave.app.ui.viewmodel.HistoryViewModel
 import com.vidsave.app.ui.viewmodel.SettingsViewModel
 import com.vidsave.app.ui.viewmodel.UpdateViewModel
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -45,27 +53,49 @@ class MainActivity : ComponentActivity() {
                 AppTheme.SYSTEM -> androidx.compose.foundation.isSystemInDarkTheme()
             }
 
-            VidSaveTheme(darkTheme = isDarkTheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    VidSaveAppNavigation(
-                        chatViewModel = chatViewModel,
-                        historyViewModel = historyViewModel,
-                        settingsViewModel = settingsViewModel,
-                        updateViewModel = updateViewModel
-                    )
+            val layoutDirection = when (settingsState.language) {
+                AppLanguage.ARABIC -> LayoutDirection.Rtl
+                AppLanguage.ENGLISH -> LayoutDirection.Ltr
+            }
 
-                    // Global Update Dialog
-                    UpdateDialog(
-                        updateStatus = updateStatus,
-                        currentVersionName = updateViewModel.currentVersionName,
-                        onDownloadAndInstall = { metadata ->
-                            updateViewModel.downloadAndInstall(metadata)
-                        },
-                        onDismiss = { updateViewModel.dismissDialog() }
-                    )
+            val targetLocale = when (settingsState.language) {
+                AppLanguage.ARABIC -> Locale("ar")
+                AppLanguage.ENGLISH -> Locale("en")
+            }
+
+            val context = LocalContext.current
+            val baseConfig = LocalConfiguration.current
+            val updatedConfig = Configuration(baseConfig).apply {
+                setLocale(targetLocale)
+            }
+            val localizedContext = context.createConfigurationContext(updatedConfig)
+
+            CompositionLocalProvider(
+                LocalLayoutDirection provides layoutDirection,
+                LocalContext provides localizedContext
+            ) {
+                VidSaveTheme(darkTheme = isDarkTheme) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        VidSaveAppNavigation(
+                            chatViewModel = chatViewModel,
+                            historyViewModel = historyViewModel,
+                            settingsViewModel = settingsViewModel,
+                            updateViewModel = updateViewModel
+                        )
+
+                        // Global Update Dialog
+                        UpdateDialog(
+                            updateStatus = updateStatus,
+                            currentVersionName = updateViewModel.currentVersionName,
+                            onDownloadAndInstall = { metadata ->
+                                updateViewModel.downloadAndInstall(metadata)
+                            },
+                            onDismiss = { updateViewModel.dismissDialog() }
+                        )
+                    }
                 }
             }
         }

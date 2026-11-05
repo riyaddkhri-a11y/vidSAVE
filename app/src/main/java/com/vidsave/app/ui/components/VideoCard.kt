@@ -1,7 +1,6 @@
 package com.vidsave.app.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -35,11 +33,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.vidsave.app.R
 import com.vidsave.app.data.model.VideoMetadata
 import com.vidsave.app.ui.theme.PrimaryAccent
 import com.vidsave.app.ui.theme.SecondaryAccent
@@ -163,7 +163,7 @@ fun VideoCard(
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = "No Watermark",
+                                    text = stringResource(R.string.no_watermark),
                                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 11.sp),
                                     color = SecondaryAccent,
                                     fontWeight = FontWeight.Bold
@@ -186,7 +186,7 @@ fun VideoCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Downloading video... ($downloadProgress%)",
+                                text = "${stringResource(R.string.downloading_video_progress)} ($downloadProgress%)",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -226,7 +226,7 @@ fun VideoCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Downloaded to Device",
+                            text = stringResource(R.string.downloaded_to_device),
                             style = MaterialTheme.typography.titleMedium,
                             color = PrimaryAccent,
                             fontWeight = FontWeight.Bold
@@ -253,7 +253,7 @@ fun VideoCard(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Download Video",
+                            text = stringResource(R.string.download_now),
                             style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                             fontWeight = FontWeight.Bold
                         )

@@ -32,9 +32,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vidsave.app.R
 import com.vidsave.app.ui.theme.PrimaryAccent
 
 @Composable
@@ -59,7 +61,7 @@ fun ChatInputField(
             onValueChange = onInputTextChanged,
             placeholder = {
                 Text(
-                    text = "Paste TikTok link...",
+                    text = stringResource(R.string.input_placeholder),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -84,7 +86,7 @@ fun ChatInputField(
                 ) {
                     Icon(
                         imageVector = Icons.Default.ContentPaste,
-                        contentDescription = "Paste URL",
+                        contentDescription = stringResource(R.string.paste_button),
                         tint = PrimaryAccent,
                         modifier = Modifier.size(20.dp)
                     )
@@ -129,7 +131,7 @@ fun ChatInputField(
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = "Send",
+                        contentDescription = stringResource(R.string.send_button),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(20.dp)
                     )

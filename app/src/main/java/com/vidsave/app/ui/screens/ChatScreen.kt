@@ -43,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.vidsave.app.R
 import com.vidsave.app.ui.components.ChatGPTHeader
 import com.vidsave.app.ui.components.ChatInputField
 import com.vidsave.app.ui.components.ChatMessageItem
@@ -126,7 +128,7 @@ fun ChatScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "VidSave AI Downloader",
+                        text = stringResource(R.string.welcome_title),
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -135,7 +137,7 @@ fun ChatScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "Paste a TikTok video link to preview metadata, select quality, and download directly.",
+                        text = stringResource(R.string.welcome_subtitle),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -167,7 +169,7 @@ fun ChatScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Try sample link",
+                                    text = stringResource(R.string.try_sample_link),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface

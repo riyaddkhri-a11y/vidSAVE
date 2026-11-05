@@ -55,6 +55,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import com.vidsave.app.R
 import com.vidsave.app.ui.theme.PrimaryAccent
 import com.vidsave.app.ui.viewmodel.AppLanguage
 import com.vidsave.app.ui.viewmodel.AppTheme
@@ -79,7 +81,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings", fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(
                         onClick = onBack,
@@ -87,7 +89,7 @@ fun SettingsScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.settings_title)
                         )
                     }
                 },
@@ -108,7 +110,7 @@ fun SettingsScreen(
         ) {
             // Section 1: Application Info & Update
             Text(
-                text = "Application Information",
+                text = stringResource(R.string.app_info),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryAccent
@@ -128,12 +130,12 @@ fun SettingsScreen(
                     ) {
                         Column {
                             Text(
-                                text = "VidSave",
+                                text = stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "Version ${uiState.installedVersionName} (Build ${uiState.installedVersionCode})",
+                                text = stringResource(R.string.version_build, uiState.installedVersionName, uiState.installedVersionCode),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -150,7 +152,7 @@ fun SettingsScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Check Updates", fontSize = 12.sp)
+                            Text(stringResource(R.string.check_for_updates), fontSize = 12.sp)
                         }
                     }
                 }
@@ -160,7 +162,7 @@ fun SettingsScreen(
 
             // Section 2: Extraction Backend Configuration
             Text(
-                text = "Backend Extraction API",
+                text = stringResource(R.string.api_url_setting),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryAccent
@@ -174,13 +176,13 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Extraction API Server Endpoint",
+                        text = stringResource(R.string.api_url_title),
                         style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                         fontWeight = FontWeight.SemiBold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Configurable endpoint used to extract video renditions.",
+                        text = stringResource(R.string.api_url_sub),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -206,7 +208,7 @@ fun SettingsScreen(
                             .testTag("save_api_url_button"),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryAccent)
                     ) {
-                        Text("Save Endpoint")
+                        Text(stringResource(R.string.save_endpoint))
                     }
                 }
             }
@@ -215,7 +217,7 @@ fun SettingsScreen(
 
             // Section 3: Preferences
             Text(
-                text = "Preferences",
+                text = stringResource(R.string.preferences),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryAccent
@@ -241,11 +243,16 @@ fun SettingsScreen(
                                 tint = PrimaryAccent
                             )
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("Theme", style = MaterialTheme.typography.bodyLarge)
+                            Text(stringResource(R.string.theme_setting), style = MaterialTheme.typography.bodyLarge)
                         }
 
                         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             AppTheme.entries.forEach { theme ->
+                                val themeLabel = when (theme) {
+                                    AppTheme.DARK -> stringResource(R.string.theme_dark)
+                                    AppTheme.LIGHT -> stringResource(R.string.theme_light)
+                                    AppTheme.SYSTEM -> stringResource(R.string.theme_system)
+                                }
                                 Button(
                                     onClick = { viewModel.updateTheme(theme) },
                                     colors = ButtonDefaults.buttonColors(
@@ -254,7 +261,46 @@ fun SettingsScreen(
                                     ),
                                     shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text(theme.name, fontSize = 11.sp)
+                                    Text(themeLabel, fontSize = 11.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Language Row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = PrimaryAccent
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(stringResource(R.string.language_setting), style = MaterialTheme.typography.bodyLarge)
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            AppLanguage.entries.forEach { lang ->
+                                val langLabel = when (lang) {
+                                    AppLanguage.ENGLISH -> stringResource(R.string.language_en)
+                                    AppLanguage.ARABIC -> stringResource(R.string.language_ar)
+                                }
+                                Button(
+                                    onClick = { viewModel.updateLanguage(lang) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (uiState.language == lang) PrimaryAccent else MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = if (uiState.language == lang) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.testTag(if (lang == AppLanguage.ARABIC) "language_ar_button" else "language_en_button")
+                                ) {
+                                    Text(langLabel, fontSize = 11.sp)
                                 }
                             }
                         }
@@ -276,7 +322,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Clear Download History",
+                            text = stringResource(R.string.clear_history),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -288,7 +334,7 @@ fun SettingsScreen(
 
             // Section 4: Legal
             Text(
-                text = "Legal & Open Source",
+                text = stringResource(R.string.legal_section),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryAccent
@@ -313,7 +359,7 @@ fun SettingsScreen(
                             tint = PrimaryAccent
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Privacy Policy", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.privacy_policy), style = MaterialTheme.typography.bodyLarge)
                     }
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -330,7 +376,7 @@ fun SettingsScreen(
                             tint = PrimaryAccent
                         )
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Open Source Licenses", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.open_source_licenses), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -340,13 +386,13 @@ fun SettingsScreen(
     if (showPrivacyDialog) {
         AlertDialog(
             onDismissRequest = { showPrivacyDialog = false },
-            title = { Text("Privacy Policy") },
+            title = { Text(stringResource(R.string.privacy_policy)) },
             text = {
-                Text("VidSave respects user privacy. No personal media or credentials are sold or collected. Video downloads are stored locally on your device.")
+                Text(stringResource(R.string.privacy_text))
             },
             confirmButton = {
                 TextButton(onClick = { showPrivacyDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             }
         )
@@ -355,13 +401,13 @@ fun SettingsScreen(
     if (showLicensesDialog) {
         AlertDialog(
             onDismissRequest = { showLicensesDialog = false },
-            title = { Text("Open Source Licenses") },
+            title = { Text(stringResource(R.string.open_source_licenses)) },
             text = {
-                Text("VidSave uses open source Kotlin, Jetpack Compose, Room, Coil, Retrofit, Moshi, and OkHttp libraries under the Apache 2.0 license.")
+                Text(stringResource(R.string.licenses_text))
             },
             confirmButton = {
                 TextButton(onClick = { showLicensesDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.ok))
                 }
             }
         )

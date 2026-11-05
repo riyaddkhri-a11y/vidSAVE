@@ -24,9 +24,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vidsave.app.R
 import com.vidsave.app.ui.theme.PrimaryAccent
 
 @Composable
@@ -52,7 +54,7 @@ fun ChatGPTHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
-                contentDescription = "VidSave Logo",
+                contentDescription = stringResource(R.string.app_name),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(24.dp)
             )
@@ -62,7 +64,7 @@ fun ChatGPTHeader(
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "VidSave",
+                text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
@@ -70,7 +72,7 @@ fun ChatGPTHeader(
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "TikTok Video Downloader",
+                text = "TikTok Downloader",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -82,7 +84,7 @@ fun ChatGPTHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.Refresh,
-                contentDescription = "Check Updates",
+                contentDescription = stringResource(R.string.check_for_updates),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -93,7 +95,7 @@ fun ChatGPTHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.History,
-                contentDescription = "Download History",
+                contentDescription = stringResource(R.string.history_title),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -104,7 +106,7 @@ fun ChatGPTHeader(
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Settings",
+                contentDescription = stringResource(R.string.settings_title),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
