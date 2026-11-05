@@ -121,9 +121,12 @@ jobs:
           ASSET_DIR="$RUNNER_TEMP/release-asset"
           mkdir -p "$ASSET_DIR"
 
-          REPO_NAME=$(echo "${{ github.repository }}" | sed 's/.*\///' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]//-/g')
+          RAW_REPO="${{ github.repository }}"
+          REPO_NAME="${RAW_REPO##*/}"
+          REPO_NAME_LOWER=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
+          CLEAN_REPO=$(echo "$REPO_NAME_LOWER" | tr -c 'a-z0-9._\n-' '-')
           RUN_NUM="${{ github.run_number }}"
-          ASSET_NAME="${REPO_NAME}-debug-build-${RUN_NUM}.apk"
+          ASSET_NAME="${CLEAN_REPO}-debug-build-${RUN_NUM}.apk"
           DEST_PATH="$ASSET_DIR/$ASSET_NAME"
 
           cp app/build/outputs/apk/debug/app-debug.apk "$DEST_PATH"
