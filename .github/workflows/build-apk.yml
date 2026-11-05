@@ -75,7 +75,31 @@ jobs:
       - name: Build debug APK
         run: |
           echo "=== Building Debug APK ==="
-          gradle :app:assembleDebug --stacktrace --no-daemon
+          MAX_ATTEMPTS=3
+          DELAY_SECONDS=10
+          ATTEMPT=1
+          SUCCESS=0
+
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS: Running 'gradle :app:assembleDebug --stacktrace --no-daemon'..."
+            if gradle :app:assembleDebug --stacktrace --no-daemon; then
+              echo "Build succeeded on attempt $ATTEMPT!"
+              SUCCESS=1
+              break
+            else
+              echo "::warning::Build attempt $ATTEMPT failed."
+              if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+                echo "Waiting ${DELAY_SECONDS}s before retrying due to potential transient network or download failure..."
+                sleep $DELAY_SECONDS
+              fi
+            fi
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+
+          if [ $SUCCESS -ne 1 ]; then
+            echo "::error::Gradle build failed after $MAX_ATTEMPTS attempts."
+            exit 1
+          fi
 
       - name: Verify debug APK
         run: |
