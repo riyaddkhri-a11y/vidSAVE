@@ -1,20 +1,43 @@
 package com.vidsave.app.download
 
-import android.app.DownloadManager
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
-import com.vidsave.app.data.model.DownloadItem
+import android.provider.MediaStore
 import com.vidsave.app.data.model.VideoMetadata
+import com.vidsave.app.domain.Mp4FileValidator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 
 class VidSaveDownloadManager(private val context: Context) {
 
-    private val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+    private val httpClient = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .build()
+
+    private val idCounter = AtomicLong(System.currentTimeMillis())
+    private val activeTasks = ConcurrentHashMap<Long, ActiveTask>()
+
+    private data class ActiveTask(
+        val downloadId: Long,
+        val metadata: VideoMetadata,
+        @Volatile var isCancelled: Boolean = false
+    )
 
     data class DownloadProgressInfo(
         val downloadId: Long,
@@ -22,106 +45,174 @@ class VidSaveDownloadManager(private val context: Context) {
         val totalBytes: Long,
         val progressPercentage: Int,
         val status: String,
-        val localUri: String? = null
+        val localUri: String? = null,
+        val errorMessage: String? = null
     )
 
     /**
-     * Enqueues a video download task using Android DownloadManager.
+     * Enqueues a video download task.
      */
     fun startDownload(metadata: VideoMetadata): Long {
-        val sanitizedTitle = (metadata.title ?: "video")
-            .replace("[^a-zA-Z0-9._-]".toRegex(), "_")
-            .take(50)
-        val fileName = "VidSave_${sanitizedTitle}_${System.currentTimeMillis()}.${metadata.format?.lowercase() ?: "mp4"}"
-
-        val request = DownloadManager.Request(Uri.parse(metadata.downloadUrl)).apply {
-            setTitle(metadata.title ?: "VidSave Download")
-            setDescription("Downloading TikTok video (${metadata.quality ?: "HD"})")
-            setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "VidSave/$fileName")
-            setAllowedOverRoaming(true)
-        }
-
-        return try {
-            downloadManager.enqueue(request)
-        } catch (e: Exception) {
-            -1L
-        }
+        val downloadId = idCounter.incrementAndGet()
+        val task = ActiveTask(downloadId = downloadId, metadata = metadata)
+        activeTasks[downloadId] = task
+        return downloadId
     }
 
     /**
-     * Queries the current progress and status of a download ID.
+     * Executes video binary download, validates MP4 signature, and saves to Movies/VidSave/ via MediaStore.
      */
     fun queryProgress(downloadId: Long): Flow<DownloadProgressInfo> = flow {
-        var isFinished = false
+        val task = activeTasks[downloadId]
+        if (task == null) {
+            emit(
+                DownloadProgressInfo(
+                    downloadId = downloadId,
+                    bytesDownloaded = 0,
+                    totalBytes = 0,
+                    progressPercentage = 0,
+                    status = "FAILED",
+                    errorMessage = "Download task not found."
+                )
+            )
+            return@flow
+        }
 
-        while (!isFinished) {
-            val query = DownloadManager.Query().setFilterById(downloadId)
-            val cursor = downloadManager.query(query)
+        val metadata = task.metadata
+        val sanitizedTitle = (metadata.title ?: "video")
+            .replace("[^a-zA-Z0-9._-]".toRegex(), "_")
+            .take(40)
+        val fileName = "VidSave_${sanitizedTitle}_${System.currentTimeMillis()}.mp4"
+        val tempFile = File(context.cacheDir, "temp_$fileName")
 
-            if (cursor != null && cursor.moveToFirst()) {
-                val bytesDownloadedIndex = cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
-                val totalBytesIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
-                val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
-                val localUriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+        try {
+            emit(DownloadProgressInfo(downloadId, 0, 0, 0, "DOWNLOADING"))
 
-                val bytesDownloaded = if (bytesDownloadedIndex >= 0) cursor.getLong(bytesDownloadedIndex) else 0L
-                val totalBytes = if (totalBytesIndex >= 0) cursor.getLong(totalBytesIndex) else 0L
-                val statusInt = if (statusIndex >= 0) cursor.getInt(statusIndex) else DownloadManager.STATUS_FAILED
-                val localUri = if (localUriIndex >= 0) cursor.getString(localUriIndex) else null
+            val req = Request.Builder()
+                .url(metadata.downloadUrl)
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+                .build()
 
-                val progress = if (totalBytes > 0) ((bytesDownloaded * 100) / totalBytes).toInt() else 0
+            val resp = httpClient.newCall(req).execute()
+            if (!resp.isSuccessful || resp.body == null) {
+                emit(DownloadProgressInfo(downloadId, 0, 0, 0, "FAILED", errorMessage = "Server returned status ${resp.code}"))
+                activeTasks.remove(downloadId)
+                return@flow
+            }
 
-                val statusString = when (statusInt) {
-                    DownloadManager.STATUS_PENDING -> "PENDING"
-                    DownloadManager.STATUS_RUNNING -> "DOWNLOADING"
-                    DownloadManager.STATUS_PAUSED -> "PAUSED"
-                    DownloadManager.STATUS_SUCCESSFUL -> {
-                        isFinished = true
-                        "COMPLETED"
+            val body = resp.body!!
+            val totalBytes = body.contentLength()
+            var bytesDownloaded = 0L
+
+            body.byteStream().use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    val buffer = ByteArray(16384)
+                    var read: Int
+                    while (input.read(buffer).also { read = it } != -1) {
+                        if (task.isCancelled) {
+                            output.flush()
+                            if (tempFile.exists()) tempFile.delete()
+                            emit(DownloadProgressInfo(downloadId, bytesDownloaded, totalBytes, 0, "CANCELLED"))
+                            activeTasks.remove(downloadId)
+                            return@flow
+                        }
+                        output.write(buffer, 0, read)
+                        bytesDownloaded += read
+                        val progress = if (totalBytes > 0) ((bytesDownloaded * 100) / totalBytes).toInt() else 0
+                        emit(DownloadProgressInfo(downloadId, bytesDownloaded, totalBytes, progress, "DOWNLOADING"))
                     }
-                    DownloadManager.STATUS_FAILED -> {
-                        isFinished = true
-                        "FAILED"
-                    }
-                    else -> "UNKNOWN"
+                    output.flush()
                 }
+            }
 
+            // 1. Validate MP4 File Signature & Content
+            if (!Mp4FileValidator.isValidMp4File(tempFile)) {
+                if (tempFile.exists()) tempFile.delete()
+                emit(DownloadProgressInfo(downloadId, 0, 0, 0, "FAILED", errorMessage = "Downloaded payload is not a valid MP4 video stream."))
+                activeTasks.remove(downloadId)
+                return@flow
+            }
+
+            // 2. Save Valid MP4 to Movies/VidSave/ via MediaStore
+            val savedUri = saveToMoviesDirectory(context, tempFile, fileName)
+            if (tempFile.exists()) tempFile.delete()
+
+            if (savedUri != null) {
                 emit(
                     DownloadProgressInfo(
                         downloadId = downloadId,
                         bytesDownloaded = bytesDownloaded,
-                        totalBytes = totalBytes,
-                        progressPercentage = progress,
-                        status = statusString,
-                        localUri = localUri
+                        totalBytes = bytesDownloaded,
+                        progressPercentage = 100,
+                        status = "COMPLETED",
+                        localUri = savedUri.toString()
                     )
                 )
             } else {
-                isFinished = true
-                emit(
-                    DownloadProgressInfo(
-                        downloadId = downloadId,
-                        bytesDownloaded = 0,
-                        totalBytes = 0,
-                        progressPercentage = 0,
-                        status = "FAILED"
-                    )
-                )
+                emit(DownloadProgressInfo(downloadId, 0, 0, 0, "FAILED", errorMessage = "Failed to save video to Gallery."))
             }
 
-            cursor?.close()
-
-            if (!isFinished) {
-                kotlinx.coroutines.delay(500)
-            }
+        } catch (e: Exception) {
+            if (tempFile.exists()) tempFile.delete()
+            emit(DownloadProgressInfo(downloadId, 0, 0, 0, "FAILED", errorMessage = e.localizedMessage))
+        } finally {
+            activeTasks.remove(downloadId)
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Saves a validated MP4 file to Movies/VidSave/ directory using MediaStore.
+     */
+    private fun saveToMoviesDirectory(context: Context, sourceFile: File, fileName: String): Uri? {
+        val resolver = context.contentResolver
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
+            put(MediaStore.Video.Media.DATE_ADDED, System.currentTimeMillis() / 1000)
+            put(MediaStore.Video.Media.DATE_TAKEN, System.currentTimeMillis())
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Video.Media.RELATIVE_PATH, "${Environment.DIRECTORY_MOVIES}/VidSave")
+                put(MediaStore.Video.Media.IS_PENDING, 1)
+            }
+        }
+
+        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        }
+
+        val uri = resolver.insert(collection, contentValues) ?: return null
+
+        return try {
+            resolver.openOutputStream(uri)?.use { output ->
+                FileInputStream(sourceFile).use { input ->
+                    input.copyTo(output)
+                }
+            }
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentValues.clear()
+                contentValues.put(MediaStore.Video.Media.IS_PENDING, 0)
+                resolver.update(uri, contentValues, null, null)
+            }
+
+            uri
+        } catch (e: Exception) {
+            resolver.delete(uri, null, null)
+            null
+        }
+    }
 
     /**
      * Cancels an ongoing download task.
      */
     fun cancelDownload(downloadId: Long): Int {
-        return downloadManager.remove(downloadId)
+        val task = activeTasks[downloadId]
+        return if (task != null) {
+            task.isCancelled = true
+            1
+        } else 0
     }
 }

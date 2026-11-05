@@ -45,3 +45,38 @@ interface TikTokExtractorService {
         @Query("url") url: String
     ): Response<ExtractResponse>
 }
+
+@JsonClass(generateAdapter = true)
+data class TikWmResponse(
+    @Json(name = "code") val code: Int? = -1,
+    @Json(name = "msg") val msg: String? = null,
+    @Json(name = "data") val data: TikWmData? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class TikWmData(
+    @Json(name = "id") val id: String? = null,
+    @Json(name = "title") val title: String? = null,
+    @Json(name = "cover") val cover: String? = null,
+    @Json(name = "play") val play: String? = null,
+    @Json(name = "wmplay") val wmplay: String? = null,
+    @Json(name = "duration") val duration: Int? = null,
+    @Json(name = "author") val author: TikWmAuthor? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class TikWmAuthor(
+    @Json(name = "unique_id") val uniqueId: String? = null,
+    @Json(name = "nickname") val nickname: String? = null,
+    @Json(name = "avatar") val avatar: String? = null
+)
+
+@JsonClass(generateAdapter = true)
+data class TikTokOEmbedResponse(
+    @Json(name = "version") val version: String? = null,
+    @Json(name = "type") val type: String? = null,
+    @Json(name = "title") val title: String? = null,
+    @Json(name = "author_name") val authorName: String? = null,
+    @Json(name = "author_url") val authorUrl: String? = null,
+    @Json(name = "thumbnail_url") val thumbnailUrl: String? = null
+)
